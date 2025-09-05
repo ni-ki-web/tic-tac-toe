@@ -74,7 +74,7 @@ const GameController = (() => {
             return;
         }
 
-        if (Gameboard.getBoard.every(cell => cell !== '') ) {
+        if (Gameboard.getBoard().every(cell => cell !== '')) {
             console.log("It's a tie!");
             gameOver = true;
             return;
@@ -100,11 +100,11 @@ const GameController = (() => {
     const printBoard = () => {
         const currentBoard = Gameboard.getBoard();
         console.log(`
-            ${b[0] || " "} | ${b[1] || " "} | ${b[2] || " "}
+            ${currentBoard[0] || " "} | ${currentBoard[1] || " "} | ${currentBoard[2] || " "}
             ---------
-            ${b[3] || " "} | ${b[4] || " "} | ${b[5] || " "}
+            ${currentBoard[3] || " "} | ${currentBoard[4] || " "} | ${currentBoard[5] || " "}
             ---------
-            ${b[6] || " "} | ${b[7] || " "} | ${b[8] || " "}
+            ${currentBoard[6] || " "} | ${currentBoard[7] || " "} | ${currentBoard[8] || " "}
         `);
     };
     return {startGame, playRound, getActivePlayer};
