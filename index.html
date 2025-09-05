@@ -8,7 +8,22 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    
+    <h1>Tic-Tac-Toe</h1>
+
+    <div class="game-container">
+        <div class="game-actions">
+            <input type="text" id="player1" placeholder="Player 1 : X">
+            <input type="text" id="player2" placeholder="Player 2 : O">
+            <button id="startBtn">Start/Restart</button>
+        </div>
+
+        <div id="gameboard" class="gameboard"></div>
+
+        <div class="status">
+            <div>Turn: <span id="turn">—</span></div>
+            <div>Result: <span id="result">—</span></div>
+        </div>
+    </div>
     <script src="script.js"></script>
 </body>
 </html>
