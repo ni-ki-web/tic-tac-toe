@@ -36,84 +36,144 @@ const GameController = (() => {
         activePlayer = player1;
         gameOver = false;
         Gameboard.reset();
-        console.clear();
-        console.log(`Game started! ${player1.name} (X) vs ${player2.name} (O)`);
-        printBoard();
+        DisplayController.render();
+        DisplayController.clearHighlights();
+        DisplayController.updateTurn(activePlayer.name);
+        DisplayController.setResult('-');
+        DisplayController.disableInputs(true);
     };
 
-    const getActivePlayer = () => activePlayer;
-
     const switchPlayer = () => {
-        activePlayer = activePlayer === player1 ? player2 : player1;
+        activePlayer = (activePlayer === player1) ? player2 : player1;
+        DisplayController.updateTurn(activePlayer.name);
     };
 
     const checkWinner = () => {
         const currentBoard = Gameboard.getBoard();
-        for (let [a, b, c] of winCombos) {
+        for (let i = 0; i < winCombos.length; i++) {
+            const [a, b, c] = winCombos[i];
             if (currentBoard[a] && currentBoard[a] === currentBoard[b] && currentBoard[a] === currentBoard[c]) {
-                return true;
+                return { combo: winCombos[i], marker: currentBoard[a] };
             }
         }
-        return false;
+        return null;
     };
 
     const playRound = (index) => {
         if (gameOver) return;
+        if (!Gameboard.setCell(index, activePlayer.marker)) return;
 
-        if (!Gameboard.setCell(index, activePlayer.marker)) {
-            console.log("Cell already taken!");
-            return;
-        }
+        DisplayController.render();
 
-        console.log(`${activePlayer.name} (${activePlayer.marker}) played at ${index}`);
-        printBoard();
-
-        if (checkWinner()) {
-            console.log(`${activePlayer.name} wins!`);
+        const winner = checkWinner();
+        if (winner) {
             gameOver = true;
+            DisplayController.highlightCells(winner.combo, winner.marker);
+            DisplayController.setResult(`${activePlayer.name} wins!`);
+            DisplayController.updateTurn("—");
+            DisplayController.disableCells();
             return;
         }
 
         if (Gameboard.getBoard().every(cell => cell !== '')) {
-            console.log("It's a tie!");
             gameOver = true;
+            DisplayController.setResult("It's a tie");
+            DisplayController.updateTurn("—");
+            DisplayController.disableCells();
             return;
         }
 
         switchPlayer();
 
         if (activePlayer.isComputer && !gameOver) {
-            computerMove();
+            setTimeout(() => {
+                computerMove();
+            }, 300);
         }
     };
 
     const computerMove = () => {
         const emptyCells = Gameboard.getBoard()
             .map((value, index) => (value === "" ? index : null))
-            .filter(value => value !== null);
+            .filter(idx => idx !== null);
 
-        const randomIndex = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-        console.log("Computer is playing it's move");
-        playRound(randomIndex);
+        const choice = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+        playRound(choice);
     };
 
-    const printBoard = () => {
-        const currentBoard = Gameboard.getBoard();
-        console.log(`
-            ${currentBoard[0] || " "} | ${currentBoard[1] || " "} | ${currentBoard[2] || " "}
-            ---------
-            ${currentBoard[3] || " "} | ${currentBoard[4] || " "} | ${currentBoard[5] || " "}
-            ---------
-            ${currentBoard[6] || " "} | ${currentBoard[7] || " "} | ${currentBoard[8] || " "}
-        `);
-    };
-    return {startGame, playRound, getActivePlayer};
+    return {startGame, playRound};
 })();
 
-GameController.startGame("Alice", "Bob"); // PvP
-// OR
-GameController.startGame("Alice", "Computer", true); // PvC
+const DisplayController = (() => {
+    const board = document.getElementById('gameboard');
+    const turn = document.getElementById('turn');
+    const result = document.getElementById('result');
+    const p1Input = document.getElementById('player1');
+    const p2Input = document.getElementById('player2');
 
-GameController.playRound(0); // active player plays
-GameController.playRound(1);
-GameController.playRound(4);
+    const render = () => {
+        board.textContent = "";
+        Gameboard.getBoard().forEach((cell, index) => {
+            const divCell = document.createElement("div");
+            divCell.classList.add('cell');
+
+            if (cell) {
+                divCell.textContent = cell;
+                divCell.classList.add(cell === "X" ? "x-cell" : "o-cell");
+            }
+
+            divCell.addEventListener('click', () => {
+                if (Gameboard.getBoard()[index] === ''){
+                    GameController.playRound(index);
+                }
+            });
+
+            board.appendChild(divCell);
+        });
+    };
+
+    const updateTurn = (name) => { turn.textContent = name; };
+    const setResult = (message) => { result.textContent = message; };
+
+    const highlightCells = (combo, marker) => {
+        const color = marker === "X" ? "orange" : "green";
+        combo.forEach(index => {
+            board.children[index].style.border = `3px solid ${color}`;
+            board.children[index].style.opacity = "0.7";
+        });
+    };
+
+    const clearHighlights = () => {
+        [...board.children].forEach(cell => {
+            cell.style.border = "1px solid #333";
+        });
+    };
+
+      const disableInputs = (disabled) => {
+        p1Input.disabled = disabled;
+        p2Input.disabled = disabled;
+    };
+
+    const disableCells = () => {
+        board.querySelectorAll('.cell').forEach(cell => {
+        cell.classList.add('disabled');
+        });
+    };
+
+    return {render, updateTurn, setResult, highlightCells, clearHighlights, disableInputs, disableCells};
+})();
+
+document.getElementById("startBtn").addEventListener("click", () => {
+    const p1Name = document.getElementById("player1").value || "Player 1";
+    let p2Name = document.getElementById("player2").value || "Player 2";
+    const mode = document.getElementById("mode").value;
+
+    if (mode === "pvc") {
+        p2Name = "Computer";
+        GameController.startGame(p1Name, p2Name, true);
+    } else {
+        GameController.startGame(p1Name, p2Name, false);
+    }
+});
+
+DisplayController.render();
