@@ -23,6 +23,7 @@ const Player = (name, marker, isComputer = false) => {
 const GameController = (() => {
     let player1, player2, activePlayer;
     let gameOver = false;
+    let waitingForComputer = false;
 
     const winCombos = [
         [0, 1, 2], [3, 4, 5], [6, 7, 8],
@@ -36,7 +37,7 @@ const GameController = (() => {
         activePlayer = player1;
         gameOver = false;
         Gameboard.reset();
-        DisplayController.clearBoard();
+        DisplayController.clearHighLights();
         DisplayController.updateTurn(activePlayer.name);
         DisplayController.setResult("-");
         DisplayController.render();
@@ -59,8 +60,23 @@ const GameController = (() => {
     };
 
     const playRound = (index) => {
-        if (gameOver || !Gameboard.setCell(index, activePlayer.marker)) return;
+        if (gameOver || waitingForComputer || !Gameboard.setCell(index, activePlayer.marker)) return;
 
+        endTurn();
+    };
+
+    const computerMove = () => {
+        const emptyCells = Gameboard.getBoard().map((value, index) => (value === "" ? index : null)).filter(index => index !== null);
+        
+        if (emptyCells.length === 0) return;
+        
+        const choice = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+        
+        Gameboard.setCell(choice, activePlayer.marker);
+        endTurn();
+    };
+
+    const endTurn = () => {
         DisplayController.render();
 
         const winner = checkWinner();
@@ -85,19 +101,15 @@ const GameController = (() => {
         DisplayController.updateTurn(activePlayer.name);
 
         if (activePlayer.isComputer && !gameOver) {
+            waitingForComputer = true;
             setTimeout(() => {
                 computerMove();
+                waitingForComputer = false;
             }, 400);
         }
     };
 
-    const computerMove = () => {
-        const emptyCells = Gameboard.getBoard().map((value, index) => (value === "" ? index : null)).filter(index => index !== null);
-        const choice = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-        playRound(choice);
-    };
-
-    return {startGame, playRound};
+    return {startGame, playRound, get player1() {return player1;}, get player2() {return player2;}};
 })();
 
 const DisplayController = (() => {
@@ -147,56 +159,75 @@ const DisplayController = (() => {
         board.querySelectorAll('.cell').forEach(cell => cell .classList.add("disabled")); 
     };
 
-    const clearBoard = () => {
+    const clearHighLights = () => {
         board.querySelectorAll('.cell').forEach(cell => {
             cell.style.border = "2px solid #333";
         });
     };
 
-    return {render, highlightCells, updateTurn, setResult, disableBoard, clearBoard };
+    return {render, highlightCells, updateTurn, setResult, disableBoard, clearHighLights };
 })();
 
-const startBtn = document.getElementById("startBtn");
-
-startBtn.addEventListener("click", () => {
+// ================ UI event handler ================
+const gameStateControl = (() => {
+    const startBtn = document.getElementById("startBtn");
+    const resetBtn = document.getElementById("resettBtn");
     const player1Input = document.getElementById("player1");
     const player2Input = document.getElementById("player2");
     const mode = document.getElementById("mode").value;
 
-    if (startBtn.textContent === "Restart") {
+    const initialState = () => {
+        startBtn.addEventListener("click", handleStart);
+        resetBtn.addEventListener("click", handleReset);
+    };
+
+    const handleStart = () => {
+        if (startBtn.textContent === "Play Again!") {
+            GameController.startGame(GameController.player1.name, GameController.player2.name, GameController.player2.isComputer);
+            DisplayController.updateTurn(GameController.player1.name);
+            DisplayController.setResult("-");
+            return;
+        }
+
+        const player1Name = player1Input.value || "Player 1";
+        let player2Name;
+
+        if (mode === "pvc") {
+            player2Name = "Computer";
+            player2Input.value = "Computer";
+            player2Input.disabled = true;
+            GameController.startGame(player1Name, player2Name, true);
+        } else {
+            player2Name = player2Input.value || "Player 2";
+            player2Input.disabled = true;
+            GameController.startGame(player1Name, player2Name, false);
+        }
+
+        player1Input.disabled = true;
+        player2Input.disabled = true;
+        DisplayController.updateTurn(player1Name);
+        DisplayController.setResult("-");
+
+        startBtn.textContent = "Play Again!";
+    };
+
+    const handleReset = () => {
         Gameboard.reset();
         DisplayController.render();
-        DisplayController.clearBoard();
+        DisplayController.clearHighLights();
         DisplayController.updateTurn("-");
         DisplayController.setResult("-");
         
         player1Input.disabled = false;
         player2Input.disabled = false;
-        if (mode === "pvc") player2Input.value = "";
+        player1Input.value = "";
+        player2Input.value = "";
+
         startBtn.textContent = "Start";
-        return;
-    }
+    };
 
-    const player1Name = player1Input.value || "Player 1";
-    let player2Name;
-
-    if (mode === "pvc") {
-        player2Name = "Computer";
-        player2Input.value = "Computer";
-        player2Input.disabled = true;
-        GameController.startGame(player1Name, player2Name, true);
-    } else {
-        player2Name = player2Input.value || "Player 2";
-        player2Input.disabled = false;
-        GameController.startGame(player1Name, player2Name, false);
-    }
-
-    player1Input.disabled = true;
-
-    DisplayController.updateTurn(player1Name);
-    DisplayController.setResult("-");
-
-    startBtn.textContent = "Restart";
-});
+    return { initialState };
+})();
 
 DisplayController.render();
+gameStateControl.initialState();
