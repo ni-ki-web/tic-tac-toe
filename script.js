@@ -36,11 +36,10 @@ const GameController = (() => {
         activePlayer = player1;
         gameOver = false;
         Gameboard.reset();
-        DisplayController.render();
-        DisplayController.clearHighlights();
+        DisplayController.clearBoard();
         DisplayController.updateTurn(activePlayer.name);
-        DisplayController.setResult('-');
-        DisplayController.disableInputs(true);
+        DisplayController.setResult("-");
+        DisplayController.render();
     };
 
     const switchPlayer = () => {
@@ -60,8 +59,7 @@ const GameController = (() => {
     };
 
     const playRound = (index) => {
-        if (gameOver) return;
-        if (!Gameboard.setCell(index, activePlayer.marker)) return;
+        if (gameOver || !Gameboard.setCell(index, activePlayer.marker)) return;
 
         DisplayController.render();
 
@@ -70,33 +68,31 @@ const GameController = (() => {
             gameOver = true;
             DisplayController.highlightCells(winner.combo, winner.marker);
             DisplayController.setResult(`${activePlayer.name} wins!`);
-            DisplayController.updateTurn("—");
-            DisplayController.disableCells();
+            DisplayController.disableBoard();
+            DisplayController.updateTurn(null);
             return;
         }
 
         if (Gameboard.getBoard().every(cell => cell !== '')) {
             gameOver = true;
             DisplayController.setResult("It's a tie");
-            DisplayController.updateTurn("—");
-            DisplayController.disableCells();
+            DisplayController.updateTurn(null);
+            DisplayController.disableBoard();
             return;
         }
 
         switchPlayer();
+        DisplayController.updateTurn(activePlayer.name);
 
         if (activePlayer.isComputer && !gameOver) {
             setTimeout(() => {
                 computerMove();
-            }, 300);
+            }, 400);
         }
     };
 
     const computerMove = () => {
-        const emptyCells = Gameboard.getBoard()
-            .map((value, index) => (value === "" ? index : null))
-            .filter(idx => idx !== null);
-
+        const emptyCells = Gameboard.getBoard().map((value, index) => (value === "" ? index : null)).filter(index => index !== null);
         const choice = emptyCells[Math.floor(Math.random() * emptyCells.length)];
         playRound(choice);
     };
@@ -108,8 +104,6 @@ const DisplayController = (() => {
     const board = document.getElementById('gameboard');
     const turn = document.getElementById('turn');
     const result = document.getElementById('result');
-    const p1Input = document.getElementById('player1');
-    const p2Input = document.getElementById('player2');
 
     const render = () => {
         board.textContent = "";
@@ -119,7 +113,7 @@ const DisplayController = (() => {
 
             if (cell) {
                 divCell.textContent = cell;
-                divCell.classList.add(cell === "X" ? "x-cell" : "o-cell");
+                divCell.classList.add(cell === "X" ? "X-cell" : "O-cell");
             }
 
             divCell.addEventListener('click', () => {
@@ -132,48 +126,77 @@ const DisplayController = (() => {
         });
     };
 
-    const updateTurn = (name) => { turn.textContent = name; };
-    const setResult = (message) => { result.textContent = message; };
-
     const highlightCells = (combo, marker) => {
-        const color = marker === "X" ? "orange" : "green";
+        const color = marker === "X" ? "#007BFF" : "#FF3B3B";
         combo.forEach(index => {
             board.children[index].style.border = `3px solid ${color}`;
-            board.children[index].style.opacity = "0.7";
+            board.children[index].style.opacity = "0.8";
         });
     };
 
-    const clearHighlights = () => {
-        [...board.children].forEach(cell => {
-            cell.style.border = "1px solid #333";
-        });
+    const updateTurn = (name) => { 
+        turn.parentElement.style.display = "flex";
+        turn.textContent = name || "-";
+    };
+        
+    const setResult = (message) => { 
+        result.parentElement.style.display = "block";
+        result.textContent = message || "-";
+    };
+    const disableBoard = () => { 
+        board.querySelectorAll('.cell').forEach(cell => cell .classList.add("disabled")); 
     };
 
-      const disableInputs = (disabled) => {
-        p1Input.disabled = disabled;
-        p2Input.disabled = disabled;
-    };
-
-    const disableCells = () => {
+    const clearBoard = () => {
         board.querySelectorAll('.cell').forEach(cell => {
-        cell.classList.add('disabled');
+            cell.style.border = "2px solid #333";
         });
     };
 
-    return {render, updateTurn, setResult, highlightCells, clearHighlights, disableInputs, disableCells};
+    return {render, highlightCells, updateTurn, setResult, disableBoard, clearBoard };
 })();
 
-document.getElementById("startBtn").addEventListener("click", () => {
-    const p1Name = document.getElementById("player1").value || "Player 1";
-    let p2Name = document.getElementById("player2").value || "Player 2";
+const startBtn = document.getElementById("startBtn");
+
+startBtn.addEventListener("click", () => {
+    const player1Input = document.getElementById("player1");
+    const player2Input = document.getElementById("player2");
     const mode = document.getElementById("mode").value;
 
-    if (mode === "pvc") {
-        p2Name = "Computer";
-        GameController.startGame(p1Name, p2Name, true);
-    } else {
-        GameController.startGame(p1Name, p2Name, false);
+    if (startBtn.textContent === "Restart") {
+        Gameboard.reset();
+        DisplayController.render();
+        DisplayController.clearBoard();
+        DisplayController.updateTurn("-");
+        DisplayController.setResult("-");
+        
+        player1Input.disabled = false;
+        player2Input.disabled = false;
+        if (mode === "pvc") player2Input.value = "";
+        startBtn.textContent = "Start";
+        return;
     }
+
+    const player1Name = player1Input.value || "Player 1";
+    let player2Name;
+
+    if (mode === "pvc") {
+        player2Name = "Computer";
+        player2Input.value = "Computer";
+        player2Input.disabled = true;
+        GameController.startGame(player1Name, player2Name, true);
+    } else {
+        player2Name = player2Input.value || "Player 2";
+        player2Input.disabled = false;
+        GameController.startGame(player1Name, player2Name, false);
+    }
+
+    player1Input.disabled = true;
+
+    DisplayController.updateTurn(player1Name);
+    DisplayController.setResult("-");
+
+    startBtn.textContent = "Restart";
 });
 
 DisplayController.render();
