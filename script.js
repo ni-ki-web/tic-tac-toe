@@ -36,11 +36,7 @@ const GameController = (() => {
         player2 = vsComputer ? Player("Computer", "O", true) : Player(player2Name, "O");
         activePlayer = player1;
         gameOver = false;
-        Gameboard.reset();
-        DisplayController.clearHighLights();
-        DisplayController.updateTurn(activePlayer.name);
-        DisplayController.setResult("-");
-        DisplayController.render();
+        DisplayController.resetDisplay();
     };
 
     const switchPlayer = () => {
@@ -159,22 +155,30 @@ const DisplayController = (() => {
         board.querySelectorAll('.cell').forEach(cell => cell .classList.add("disabled")); 
     };
 
-    const clearHighLights = () => {
+    const clearHighlights = () => {
         board.querySelectorAll('.cell').forEach(cell => {
             cell.style.border = "2px solid #333";
         });
     };
 
-    return {render, highlightCells, updateTurn, setResult, disableBoard, clearHighLights };
+    const resetDisplay = () => {
+        Gameboard.reset();
+        render();
+        clearHighlights();
+        updateTurn("-");
+        setResult("-");
+    };
+
+    return {render, highlightCells, updateTurn, setResult, disableBoard, clearHighlights, resetDisplay };
 })();
 
 // ================ UI event handler ================
 const gameStateControl = (() => {
     const startBtn = document.getElementById("startBtn");
-    const resetBtn = document.getElementById("resettBtn");
+    const resetBtn = document.getElementById("resetBtn");
     const player1Input = document.getElementById("player1");
     const player2Input = document.getElementById("player2");
-    const mode = document.getElementById("mode").value;
+    const modeSelect = document.getElementById("mode");
 
     const initialState = () => {
         startBtn.addEventListener("click", handleStart);
@@ -182,6 +186,8 @@ const gameStateControl = (() => {
     };
 
     const handleStart = () => {
+        const mode = modeSelect.value;
+
         if (startBtn.textContent === "Play Again!") {
             GameController.startGame(GameController.player1.name, GameController.player2.name, GameController.player2.isComputer);
             DisplayController.updateTurn(GameController.player1.name);
@@ -195,16 +201,16 @@ const gameStateControl = (() => {
         if (mode === "pvc") {
             player2Name = "Computer";
             player2Input.value = "Computer";
-            player2Input.disabled = true;
-            GameController.startGame(player1Name, player2Name, true);
         } else {
             player2Name = player2Input.value || "Player 2";
-            player2Input.disabled = true;
-            GameController.startGame(player1Name, player2Name, false);
         }
 
         player1Input.disabled = true;
-        player2Input.disabled = true;
+        player2Input.disabled = mode === "pvc";
+        modeSelect.disabled = true;
+
+        GameController.startGame(player1Name, player2Name, mode==="pvc");
+
         DisplayController.updateTurn(player1Name);
         DisplayController.setResult("-");
 
@@ -212,16 +218,13 @@ const gameStateControl = (() => {
     };
 
     const handleReset = () => {
-        Gameboard.reset();
-        DisplayController.render();
-        DisplayController.clearHighLights();
-        DisplayController.updateTurn("-");
-        DisplayController.setResult("-");
+        DisplayController.resetDisplay();
         
         player1Input.disabled = false;
         player2Input.disabled = false;
         player1Input.value = "";
         player2Input.value = "";
+        modeSelect.disabled = false;
 
         startBtn.textContent = "Start";
     };
