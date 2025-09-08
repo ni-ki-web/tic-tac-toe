@@ -206,7 +206,7 @@ const gameStateControl = (() => {
         }
 
         player1Input.disabled = true;
-        player2Input.disabled = mode === "pvc";
+        player2Input.disabled = mode === "pvc"
         modeSelect.disabled = true;
 
         GameController.startGame(player1Name, player2Name, mode==="pvc");
