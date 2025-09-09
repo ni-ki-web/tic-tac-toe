@@ -40,3 +40,7 @@ This project was made to practice **modular JavaScript** and **DOM manipulation*
   - Pick winning moves if available
 - Add a scoreboard to track win/loses
 - Better UX/UI
+
+
+  ## Live Demo
+Check out the live version of the game here: [Play Tic-Tac-Toe](https://ni-ki-web.github.io/tic-tac-toe/)
