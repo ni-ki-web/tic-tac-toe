@@ -200,7 +200,7 @@ const gameStateControl = (() => {
 
         if (mode === "pvc") {
             player2Name = "Computer";
-            player2Input.value = "Computer";
+            player2Input.value = "Computer : O";
         } else {
             player2Name = player2Input.value || "Player 2";
         }
